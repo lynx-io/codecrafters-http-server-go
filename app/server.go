@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strconv"
@@ -85,12 +86,15 @@ func handleConnection(conn net.Conn) {
 			fileName := strings.TrimPrefix(request.Path, "/files/")
 			fileString := fmt.Sprintf("%s%s", dir, fileName)
 			content := []byte(request.Body + "\n")
+			fmt.Println("Writing file in: ", fileString)
+			fmt.Println("Content: ", request.Body)
 			err := os.WriteFile(fileString, content, 0644)
 			if err != nil {
-				panic(err)
+				fmt.Println(err)
 			}
 			response := "HTTP/1.1 201 Created\r\n\r\n"
 			conn.Write([]byte(response))
+			return
 		}
 		conn.Write([]byte("HTTP/1.1 405 Not Allowed\r\n\r\n"))
 		return
@@ -143,6 +147,30 @@ func parseRequest(reader *bufio.Reader) *CustomRequest {
 	}
 
 	parsedRequest.Headers = headers
+
+	// Read the body if there's a Content-Length header
+	if contentLength, ok := parsedRequest.Headers["Content-Length"]; ok {
+		length, err := strconv.Atoi(contentLength)
+		if err == nil {
+			body := make([]byte, length)
+			_, err := io.ReadFull(reader, body)
+			if err != nil {
+				fmt.Println("Error reading body:", err)
+				return nil
+			}
+			parsedRequest.Body = string(body)
+		}
+	} else {
+		// Handle body as EOF (or if no Content-Length header is present)
+		body, err := io.ReadAll(reader)
+		if err == nil {
+			parsedRequest.Body = string(body)
+		}
+	}
+
+	if err != nil {
+		fmt.Println("There was an error parsing body ", err.Error())
+	}
 
 	return &parsedRequest
 }
