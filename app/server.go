@@ -85,7 +85,7 @@ func handleConnection(conn net.Conn) {
 			dir := os.Args[2]
 			fileName := strings.TrimPrefix(request.Path, "/files/")
 			fileString := fmt.Sprintf("%s%s", dir, fileName)
-			content := []byte(request.Body + "\n")
+			content := []byte(request.Body)
 			fmt.Println("Writing file in: ", fileString)
 			fmt.Println("Content: ", request.Body)
 			err := os.WriteFile(fileString, content, 0644)
