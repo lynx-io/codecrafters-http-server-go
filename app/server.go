@@ -60,16 +60,30 @@ func handleConnection(conn net.Conn) {
 		userAgent := request.Headers["User-Agent"]
 		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgent), userAgent)
 		conn.Write([]byte(response))
+		return
 	} else if paths[1] == "echo" {
 		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(paths[2]), paths[2])
 		conn.Write([]byte(response))
+		return
+	} else if paths[1] == "files" {
+		// logic here
+		// Read file
+		fmt.Println("Reading file: ", paths[2])
+		file, err := os.ReadFile("./app/tmp/" + paths[2])
+		if err != nil {
+			fmt.Println(err)
+			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+			return
+		}
+		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(file), file)
+		conn.Write([]byte(response))
+		return
 	} else if request.Path == "/" {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	} else if request.Path == "/close" {
-		conn.Close()
 		return
 	} else {
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		return
 	}
 }
 
