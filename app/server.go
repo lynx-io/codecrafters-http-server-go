@@ -66,17 +66,33 @@ func handleConnection(conn net.Conn) {
 		conn.Write([]byte(response))
 		return
 	} else if paths[1] == "files" {
-		dir := os.Args[2]
-		fileName := strings.TrimPrefix(request.Path, "/files/")
-		fileString := fmt.Sprintf("%s%s", dir, fileName)
-		file, err := os.ReadFile(fileString)
-		if err != nil {
-			fmt.Println(err)
-			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		switch request.Method {
+		case "GET":
+			dir := os.Args[2]
+			fileName := strings.TrimPrefix(request.Path, "/files/")
+			fileString := fmt.Sprintf("%s%s", dir, fileName)
+			file, err := os.ReadFile(fileString)
+			if err != nil {
+				fmt.Println(err)
+				conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+				return
+			}
+			response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(file), file)
+			conn.Write([]byte(response))
 			return
+		case "POST":
+			dir := os.Args[2]
+			fileName := strings.TrimPrefix(request.Path, "/files/")
+			fileString := fmt.Sprintf("%s%s", dir, fileName)
+			content := []byte(request.Body + "\n")
+			err := os.WriteFile(fileString, content, 0644)
+			if err != nil {
+				panic(err)
+			}
+			response := "HTTP/1.1 201 Created\r\n\r\n"
+			conn.Write([]byte(response))
 		}
-		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(file), file)
-		conn.Write([]byte(response))
+		conn.Write([]byte("HTTP/1.1 405 Not Allowed\r\n\r\n"))
 		return
 	} else if request.Path == "/" {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
