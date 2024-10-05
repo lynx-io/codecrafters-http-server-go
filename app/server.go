@@ -92,6 +92,7 @@ func handleConnection(conn net.Conn) {
 			if err != nil {
 				fmt.Println(err)
 				conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+				return
 			}
 			response := "HTTP/1.1 201 Created\r\n\r\n"
 			conn.Write([]byte(response))
