@@ -68,8 +68,11 @@ func handleConnection(conn net.Conn) {
 	} else if paths[1] == "files" {
 		// logic here
 		// Read file
-		fmt.Println("Reading file: ", paths[2])
-		file, err := os.ReadFile("./app/tmp/" + paths[2])
+		dir := os.Args
+		fmt.Println(dir)
+		fmt.Println("Reading file: ", paths[2], " and dir: ", dir[2])
+		fileString := fmt.Sprintf(".%s%s", dir[2], paths[2])
+		file, err := os.ReadFile(fileString)
 		if err != nil {
 			fmt.Println(err)
 			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
