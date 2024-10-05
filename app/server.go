@@ -34,6 +34,7 @@ func main() {
 		fmt.Println("Error accepting connection: ", err.Error())
 		os.Exit(1)
 	}
+	defer conn.Close()
 
 	status, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
