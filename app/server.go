@@ -158,14 +158,7 @@ func parseRequest(reader *bufio.Reader) *CustomRequest {
 			_, err := io.ReadFull(reader, body)
 			if err != nil {
 				fmt.Println("Error reading body:", err)
-				return nil
 			}
-			parsedRequest.Body = string(body)
-		}
-	} else {
-		// Handle body as EOF (or if no Content-Length header is present)
-		body, err := io.ReadAll(reader)
-		if err == nil {
 			parsedRequest.Body = string(body)
 		}
 	}
