@@ -38,21 +38,22 @@ func main() {
 	}
 	fmt.Println("Listening on: ", address)
 
-	conn, err := l.Accept()
-	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
-		os.Exit(1)
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection: ", err.Error())
+			continue
+		}
+
+		go handleConnection(conn)
 	}
+}
+
+func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)
-
-	if err != nil {
-		fmt.Println("There was an error: ", err.Error())
-	}
-
 	request := parseRequest(reader)
-
 	paths := strings.Split(request.Path, "/")
 
 	if request.Path == "/user-agent" {
@@ -64,6 +65,9 @@ func main() {
 		conn.Write([]byte(response))
 	} else if request.Path == "/" {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	} else if request.Path == "/close" {
+		conn.Close()
+		return
 	} else {
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
@@ -87,7 +91,6 @@ func parseRequest(reader *bufio.Reader) *CustomRequest {
 	parsedRequest.Path = methodPathVersion[1]
 	parsedRequest.HttpVersion = methodPathVersion[2]
 
-	fmt.Println("Calculating headers")
 	// Parse headers
 	for {
 		line, err := reader.ReadString('\n')
