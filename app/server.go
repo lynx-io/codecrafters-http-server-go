@@ -43,10 +43,13 @@ func main() {
 
 	request := strings.Fields(status)
 
-	fmt.Println(request[1])
+	url := request[1]
 
-	if request[1] == "/" {
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	paths := strings.Split(url, "/")
+
+	if paths[1] == "echo" {
+		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(paths[2]), paths[2])
+		conn.Write([]byte(response))
 	} else {
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
