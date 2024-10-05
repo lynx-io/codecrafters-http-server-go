@@ -91,6 +91,7 @@ func handleConnection(conn net.Conn) {
 			err := os.WriteFile(fileString, content, 0644)
 			if err != nil {
 				fmt.Println(err)
+				conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 			}
 			response := "HTTP/1.1 201 Created\r\n\r\n"
 			conn.Write([]byte(response))
