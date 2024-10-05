@@ -75,7 +75,7 @@ func handleConnection(conn net.Conn) {
 		fmt.Println("Current working directory:", cwd) // Read file
 		dir := os.Args
 		fmt.Println(dir)
-		fileString := fmt.Sprintf("%s/app%s%s", cwd, dir[2], paths[2])
+		fileString := fmt.Sprintf("%s%s%s", cwd, dir[2], paths[2])
 		fmt.Println(fileString)
 		file, err := os.ReadFile(fileString)
 		if err != nil {
