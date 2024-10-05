@@ -65,7 +65,7 @@ func handleConnection(conn net.Conn) {
 	} else if paths[1] == "echo" {
 		encoding := ""
 		fmt.Println(request.Headers)
-		if request.Headers["Accept-Encoding"] == "gzip" {
+		if strings.Contains(request.Headers["Accept-Encoding"], "gzip") {
 			encoding = "Content-Encoding: gzip\r\n"
 		}
 		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n%s\r\n%s", len(paths[2]), encoding, paths[2])
