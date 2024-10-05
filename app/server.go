@@ -66,18 +66,9 @@ func handleConnection(conn net.Conn) {
 		conn.Write([]byte(response))
 		return
 	} else if paths[1] == "files" {
-		// logic here
-		cwd, err := os.Getwd()
-		if err != nil {
-			fmt.Println("Error getting working directory:", err)
-			return
-		}
-		fmt.Println("Current working directory:", cwd) // Read file
 		dir := os.Args[2]
 		fileName := strings.TrimPrefix(request.Path, "/files/")
-		fmt.Println(dir)
 		fileString := fmt.Sprintf("%s%s", dir, fileName)
-		fmt.Println(fileString)
 		file, err := os.ReadFile(fileString)
 		if err != nil {
 			fmt.Println(err)
