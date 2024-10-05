@@ -63,7 +63,12 @@ func handleConnection(conn net.Conn) {
 		conn.Write([]byte(response))
 		return
 	} else if paths[1] == "echo" {
-		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(paths[2]), paths[2])
+		encoding := ""
+		fmt.Println(request.Headers)
+		if request.Headers["Accept-Encoding"] == "gzip" {
+			encoding = "Content-Encoding: gzip"
+		}
+		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n%s\r\n%s", len(paths[2]), encoding, paths[2])
 		conn.Write([]byte(response))
 		return
 	} else if paths[1] == "files" {
