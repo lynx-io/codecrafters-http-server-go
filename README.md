@@ -1,4 +1,6 @@
-[![progress-banner](https://backend.codecrafters.io/progress/http-server/f8f3779d-04b0-4cee-b490-593940642909)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+[![progress-banner](https://backend.codecrafters.io/progress/http-server/f8f3779d-04b0-4cee-b490-593940642909)](https://app.codecrafters.io/users/lynx-io)
+
+# Challenge completed :D
 
 This is a starting point for Go solutions to the
 ["Build Your Own HTTP server" Challenge](https://app.codecrafters.io/courses/http-server/overview).
