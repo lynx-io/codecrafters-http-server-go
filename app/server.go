@@ -56,7 +56,6 @@ func main() {
 	}
 }
 
-// Bit ugly but...
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
