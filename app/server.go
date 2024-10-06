@@ -21,16 +21,20 @@ type CustomRequest struct {
 	UserAgent   string
 }
 
-// Ensures gofmt doesn't remove the "net" and "os" imports above (feel free to remove this!)
+type CustomResponse struct {
+	Headers        map[string]string
+	HttpVersion    string
+	HttpStatusName string
+	Body           []byte
+	HttpStatus     int16
+}
+
 var (
 	_ = net.Listen
 	_ = os.Exit
 )
 
 func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
-	fmt.Println("Logs from your program will appear here!")
-
 	port := 4221
 	address := "0.0.0.0:" + strconv.Itoa(port)
 
@@ -58,70 +62,47 @@ func handleConnection(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 	request := parseRequest(reader)
 	paths := strings.Split(request.Path, "/")
+	var response CustomResponse
+	response.HttpVersion = request.HttpVersion
+	response.Headers = make(map[string]string)
+	response.Headers["Content-Type"] = "text/plain"
 
-	if request.Path == "/user-agent" {
+	var responseString string
+
+	switch {
+	case paths[1] == "user-agent":
 		userAgent := request.Headers["User-Agent"]
-		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgent), userAgent)
-		conn.Write([]byte(response))
-		return
-	} else if paths[1] == "echo" {
-		encoding := ""
-		fmt.Println(request.Headers)
+		// oldresponse := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(userAgent), userAgent)
+		response.HttpStatus = 200
+		response.HttpStatusName = "OK"
+		response.Headers["Content-Length"] = strconv.Itoa(len(userAgent))
+		response.Body = []byte(userAgent)
+	case paths[1] == "echo":
+		response.HttpStatus = 200
+		response.HttpStatusName = "OK"
 		if strings.Contains(request.Headers["Accept-Encoding"], "gzip") {
-			encoding = "Content-Encoding: gzip\r\n"
 			var b bytes.Buffer
 			enc := gzip.NewWriter(&b)
 			enc.Write([]byte(paths[2]))
-			enc.Flush()
 			enc.Close()
-			response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n%s\r\n%s", len(b.String()), encoding, b.String())
-			conn.Write([]byte(response))
-			return
+			response.Headers["Content-Encoding"] = "gzip"
+			response.Headers["Content-Length"] = strconv.Itoa(len(b.String()))
+			response.Body = b.Bytes()
+		} else {
+			response.Headers["Content-Length"] = strconv.Itoa(len(paths[2]))
+			response.Body = []byte(paths[2])
 		}
-		response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n%s\r\n%s", len(paths[2]), encoding, paths[2])
-		conn.Write([]byte(response))
-		return
-	} else if paths[1] == "files" {
-		switch request.Method {
-		case "GET":
-			dir := os.Args[2]
-			fileName := strings.TrimPrefix(request.Path, "/files/")
-			fileString := fmt.Sprintf("%s%s", dir, fileName)
-			file, err := os.ReadFile(fileString)
-			if err != nil {
-				fmt.Println(err)
-				conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-				return
-			}
-			response := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(file), file)
-			conn.Write([]byte(response))
-			return
-		case "POST":
-			dir := os.Args[2]
-			fileName := strings.TrimPrefix(request.Path, "/files/")
-			fileString := fmt.Sprintf("%s%s", dir, fileName)
-			content := []byte(request.Body)
-			fmt.Println("Writing file in: ", fileString)
-			fmt.Println("Content: ", request.Body)
-			err := os.WriteFile(fileString, content, 0644)
-			if err != nil {
-				fmt.Println(err)
-				conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-				return
-			}
-			response := "HTTP/1.1 201 Created\r\n\r\n"
-			conn.Write([]byte(response))
-			return
-		}
-		conn.Write([]byte("HTTP/1.1 405 Not Allowed\r\n\r\n"))
-		return
-	} else if request.Path == "/" {
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-		return
-	} else {
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-		return
+	case paths[1] == "files":
+		handleFiles(request, &response)
+	case request.Path == "/":
+		response.HttpStatus = 200
+		response.HttpStatusName = "OK"
+	default:
+		response.HttpStatus = 404
+		response.HttpStatusName = "Not Found"
 	}
+	responseString = parseResponse(&response)
+	conn.Write([]byte(responseString))
 }
 
 func parseRequest(reader *bufio.Reader) *CustomRequest {
@@ -183,4 +164,55 @@ func parseRequest(reader *bufio.Reader) *CustomRequest {
 	}
 
 	return &parsedRequest
+}
+
+func handleFiles(request *CustomRequest, response *CustomResponse) {
+	switch request.Method {
+	case "GET":
+		dir := os.Args[2]
+		fileName := strings.TrimPrefix(request.Path, "/files/")
+		fileString := fmt.Sprintf("%s%s", dir, fileName)
+		file, err := os.ReadFile(fileString)
+		if err != nil {
+			response.HttpStatus = 404
+			response.HttpStatusName = "Not Found"
+		} else {
+			response.HttpStatus = 200
+			response.HttpStatusName = "OK"
+			response.Headers["Content-Length"] = strconv.Itoa(len(file))
+			response.Headers["Content-Type"] = "application/octet-stream"
+			response.Body = file
+		}
+	case "POST":
+		dir := os.Args[2]
+		fileName := strings.TrimPrefix(request.Path, "/files/")
+		fileString := fmt.Sprintf("%s%s", dir, fileName)
+		content := []byte(request.Body)
+		err := os.WriteFile(fileString, content, 0644)
+		if err != nil {
+			fmt.Println(err)
+			response.HttpStatus = 200
+			response.HttpStatusName = "OK"
+			break
+		} else {
+			response.HttpStatus = 201
+			response.HttpStatusName = "Created"
+		}
+	default:
+		response.HttpStatus = 405
+		response.HttpStatusName = "Not Allowed"
+	}
+}
+
+func parseResponse(response *CustomResponse) string {
+	var httpStatus, headers string
+	httpStatus = fmt.Sprintf("%s %d %s", response.HttpVersion, response.HttpStatus, response.HttpStatusName)
+
+	for left, right := range response.Headers {
+		headers = headers + left + ": " + right + "\r\n"
+	}
+
+	body := response.Body
+
+	return fmt.Sprintf("%s\r\n%s\r\n%s", httpStatus, headers, body)
 }
